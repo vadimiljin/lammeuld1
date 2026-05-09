@@ -335,20 +335,3 @@ If you want to switch to self-referencing pagination canonicals later, drop Bran
 | `sections/main-collection.liquid` | Added `schema-breadcrumb` render after the legacy CollectionPage block. |
 
 Out-of-scope surfaces are byte-equal to pre-edit: `checkout/`, `customers/`, `cart.liquid`, `assets/`, `locales/`, `config/settings_schema.json`, `orders/`. None touched.
-
----
-
-## Rollback
-
-`git revert <SHA>` is the safe undo (creates a new commit). Never `git commit --amend`.
-
-| Reverts | Command (reverse order matters) | Effect |
-|---|---|---|
-| All canonical work | `git revert 843e553 9c07029 e120a4b fd58602` | Back to single-line Shopify default canonical; `og:url` reads `canonical_url` directly. |
-| Product schema | `git revert 810e818 45225c4` | Restores the pre-existing `product-template-variables.liquid` emission. |
-| Article schema | `git revert 19d56d0` | Restores the inline 43-line Article block in `article-template.liquid`. |
-| BreadcrumbList | `git revert 617987f` | Removes the snippet and all 3 host wires (PDP + collection + article). |
-
-To drop only the article-page BreadcrumbList wire (the 2026-05-08 addition) and keep PDP and collection: edit the wire line out of `article-template.liquid` by hand instead of reverting `617987f`.
-
-After any rollback, push to dev and re-run the preview-URL view-source check. Live theme `186499793236` is never the push target.
