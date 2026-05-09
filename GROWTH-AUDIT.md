@@ -140,7 +140,7 @@ Q1: brand-entity disambiguation begins; long-tail Danish queries start surfacing
 
 ## §6 - Contact
 
-`hello@vadimiljin.com` or via Upwork DM.
+`hello@vadimiljin.com`, +372 5551 4747, or via Upwork DM.
 
 ---
 
