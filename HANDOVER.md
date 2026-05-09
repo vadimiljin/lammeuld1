@@ -334,21 +334,3 @@ Out-of-scope surfaces are byte-equal to pre-edit: `checkout/`, `customers/`, `ca
 To drop only the article-page BreadcrumbList wire (the 2026-05-08 addition) and keep PDP and collection: edit the wire line out of `article-template.liquid` by hand instead of reverting `617987f`.
 
 After any rollback, push to dev and re-run the preview-URL view-source check. Live theme `186499793236` is never the push target.
-
----
-
-## Publish + 30-day monitoring
-
-Publish is your call ("Publish window your call"). Path: Shopify admin -> Themes -> select dev theme `196009525588` -> Publish. That flips dev to live; the previous live theme drops to unpublished.
-
-Once live, the contracted 30-day window opens:
-
-- **Day 0** - re-run the 500-URL crawl against live URLs (no `?preview_theme_id=`). Same script, same criteria. Expected: 100% strict-PASS plus the same 5 tag-page WARNs.
-- **Weekly (4x)** - GSC checks on "Duplicate, Google chose different canonical" and "Indexed, not submitted in sitemap" reports. Expected: duplicate-canonical signals trend down as the bare-PDP canonical propagates.
-- **Day 30** - final report appended to this file: clicks/impressions delta, indexation status, RRT re-validation on a few exemplars, verdict.
-
----
-
-## Contact
-
-`hello@vadimiljin.com` or Upwork DM. For the prioritized backlog of follow-up work (tag-page handling, additional schema, AI-search optimization), see `GROWTH-AUDIT.md`.
