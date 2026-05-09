@@ -126,7 +126,7 @@ Everything in €6,500, plus you become my largest active retainer with first-pr
 
 **Out of scope (any tier):** paid ads.
 
-**Engagement.** Upwork milestone-based (each month is a milestone, same platform as v1.0), or direct contract with monthly invoice on EU commercial terms (Wise, private individual, EU-based). Deliverables in shared private repo. 30-day notice either side. Quarterly review with upgrade or downgrade option. Single point of accountability, no subcontracting.
+**Engagement.** Upwork hourly/milestone-based or direct contract with monthly invoice. Deliverables in shared private repo. 30-day notice either side. Quarterly review with upgrade or downgrade option. Single point of accountability, no subcontracting.
 
 ---
 
