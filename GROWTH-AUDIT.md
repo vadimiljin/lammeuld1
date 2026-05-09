@@ -26,7 +26,7 @@ Three queries, live, 2026-05-09. Web search enabled. Incognito mode. Real Danish
 
 **Q3 (ChatGPT with web tools, DA, same as Q1, 49-second web search):** Recommended Lampemesteren, AndLight, Luxlight, Illums Bolighus, Lysmesteren, Lampefeber. ChatGPT pulled Luxlight's delivery SLA verbatim (*"80% af ordrer før kl. 14 sendes samme dag; 95% leveres inden for 4 hverdage"*). lammeuld absent.
 
-**Why competitors win:** Luxlight publishes a structured delivery SLA. Lampegiganten declares catalog scale (*"274 products"*). Nordic Nest publishes brand counts (*"over 250 brands"*). Lampefeber anchors itself geographically (*"showroom nær Aarhus"*). Each exposes specific extractable claims AI engines can quote.
+**Why competitors win:** Luxlight publishes a structured delivery SLA. Lampegiganten declares catalog scale (*"over 40.000 produkter"*). Nordic Nest publishes brand counts (*"over 250 brands"*). Lampefeber anchors itself geographically (*"showroom i Harlev lidt uden for Aarhus"*). Each exposes specific extractable claims AI engines can quote.
 
 **Why lammeuld doesn't:** Trustpilot rating is JS-loaded, invisible to AI engines. Catalog scale is implicit. Delivery commitment lives in the FAQ, not as a structured SLA. The brand entity is ambiguous; "lammeuld" is also Danish for sheepskin, and no Knowledge Graph anchor disambiguates them.
 
@@ -49,10 +49,11 @@ Three queries, live, 2026-05-09. Web search enabled. Incognito mode. Real Danish
 
 ## §3 - The architecture (what gets built)
 
-A retrieval graph under `/llms/`. Each grouping file is one angle into the catalog: style, room, sizing, material, use-case, comparison. The same product clusters surface from multiple angles, so AI engines hit them no matter which way the buyer asks. Per-Shopify-category retrieval is intentionally not built; v1.0's canonicals already give AI engines those.
+A retrieval graph under `/llms/`. Each grouping file is one angle into the catalog: category, style, room, sizing, material, use-case, comparison. The same product clusters surface from multiple angles, so AI engines hit them no matter which way the buyer asks.
 
 - **`/llms.txt`** at the root, the procurement-evaluation entry point. Compliance block (EU consumer protection, 14-day fortrydelsesret per dansk købelov, 2-year reklamationsret), brand-entity anchors, directory map.
 - **Master `/llms/lammeuld.md`** + matching `Organization` JSON-LD on homepage. Closes the wool-store misclassification (§2.4), anchors brand entity in retrievable text and machine-readable structured data, navigation hub for the rest.
+- **Category cluster docs** (`/llms/categories/{handle}.md`): per-Shopify-category retrieval surface for the high-traffic taxonomy: sofaborde, spiseborde, skriveborde, sengeborde, reoler, kommoder, pendler, loftlamper, væglamper, gulvlamper, bordlamper, barstole, spisestole, sofaer, lænestole, opbevaring, badeværelse, stue, spisestue, entre, kontor, bornesenge, udendors. Each pairs the Shopify collection page with extractable claims (count, price band, dominant materials, common rooms, brand mix) and links into related sizing, style, room, and material guides. v1.0's canonicals get AI engines to the collection page; this layer gives them text to quote once they're there.
 - **Style guides** (`/llms/styles/{aesthetic}.md`): japandi, skandinavisk, boho, classic-modern, industrial. Maps aesthetic-discovery queries to product clusters.
 - **Room guides** (`/llms/rooms/{room}.md`): stue, soveværelse, spisestue, hjemmekontor, hall. Spatial-query intent.
 - **Sizing matrices** (`/llms/sizing/{topic}.md`): TV-bord-til-tv, sofabord-til-sofa, spisebord-pladsbehov, lampe-til-rum-størrelse. Number-tables AI engines quote verbatim.
@@ -101,7 +102,9 @@ hver side for visuel balance og kabelplads.
 [META_TAGS]: tv-bord, fjernsynsbord, sizing, fit, room-decor
 ```
 
-The Krydshenvisninger block is the network glue. Each grouping file links to related style, room, and material files, so every product cluster has multiple retrieval paths into it. Depth varies by file type: sizing matrices are 1-2 days, style/room/material/buying guides are 2-3 days, master doc and competitor comparisons are 4-5 days.
+The Krydshenvisninger block is the network glue. Each grouping file links to related style, room, and material files, so every product cluster has multiple retrieval paths into it. Depth varies by file type: sizing matrices are 1-2 days, style/room/material/buying/category guides are 2-3 days, master doc and competitor comparisons are 4-5 days.
+
+**SEO leg (parallel build, same source files).** Every doc above doubles as a Google-indexed surface, not just an LLM retrieval one. Category docs render into Shopify `collection.description` as deep-content intro blocks (already used on lammeuld for ~half the catalog at shorter depth, e.g. *"Find dine blandt 90+ modeller fra 33 til 180 cm bredde"* on `/collections/bambus`); the long form replaces the supplier-feed thin-content default and competes for Google category SERPs. Buying guides and use-case clusters publish as `/blogs/guides/{handle}` posts, picking up traditional informational queries (*"hvor bredt skal et tv-bord være"*, *"vælg sofabord størrelse"*) that AI engines also cite. Comparison docs publish as `/pages/sammenlign-{competitor}` for branded comparison queries. Sizing matrices embed in both the `/llms/` retrieval surface and the relevant collection-page intros. One source of truth, two delivery channels: AI retrieval under `/llms/`, Google-indexed pages under `/pages/`, `/blogs/`, and inline collection descriptions. The retainer authoring pace (2-4 docs/month) is the same; the SEO leg is incremental wiring on top of the LLM leg, not a separate workstream.
 
 ---
 
