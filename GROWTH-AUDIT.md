@@ -44,6 +44,7 @@ Three queries, live, 2026-05-09. Web search enabled. Incognito mode. Real Danish
 8. **Foreign-language slug debt.** Thousands of product handles in Italian/German/French/English from supplier feeds (VidaXL/SoBuy/Wohnling/VASAGLE/Homcom/Aosom). Bulk theme-side remap with sequenced 301s.
 9. **`www.lammeuld.dk` separately indexed.** `www -> apex` 301 + HSTS closes the duplicate.
 10. **NAP drift.** Google's cache holds 4 distinct phone-hour ranges (9-11, 10-12, 12-14, 16-17) for the same `42 90 54 44` line. Theme-side single source of truth.
+11. **Legacy microdata schema lingering site-wide.** Header logo div carries `itemscope itemtype="http://schema.org/Organization"` with only `itemprop="url"` + `itemprop="logo"` (Impulse default from the pre-JSON-LD era). Audit 2026-05-09 confirms it ships from the header partial, so every page emits it (homepage, PDP, collection, blog all verified). It is incomplete (no `name`, no `address`, no `sameAs`), it is the older-and-weaker schema dialect Google has discouraged since 2018, and it will collide with the canonical JSON-LD `Organization` block planned in §3 (master doc bullet) - two competing Organization records on the same page degrades entity resolution. Strip the microdata; ship a single source-of-truth JSON-LD Organization block in `theme.liquid` head.
 
 ---
 
@@ -105,6 +106,15 @@ hver side for visuel balance og kabelplads.
 The Krydshenvisninger block is the network glue. Each grouping file links to related style, room, and material files, so every product cluster has multiple retrieval paths into it. Depth varies by file type: sizing matrices are 1-2 days, style/room/material/buying/category guides are 2-3 days, master doc and competitor comparisons are 4-5 days.
 
 **SEO leg (parallel build, same source files).** Every doc above doubles as a Google-indexed surface, not just an LLM retrieval one. Category docs render into Shopify `collection.description` as deep-content intro blocks (already used on lammeuld for ~half the catalog at shorter depth, e.g. *"Find dine blandt 90+ modeller fra 33 til 180 cm bredde"* on `/collections/bambus`); the long form replaces the supplier-feed thin-content default and competes for Google category SERPs. Buying guides and use-case clusters publish as `/blogs/guides/{handle}` posts, picking up traditional informational queries (*"hvor bredt skal et tv-bord være"*, *"vælg sofabord størrelse"*) that AI engines also cite. Comparison docs publish as `/pages/sammenlign-{competitor}` for branded comparison queries. Sizing matrices embed in both the `/llms/` retrieval surface and the relevant collection-page intros. One source of truth, two delivery channels: AI retrieval under `/llms/`, Google-indexed pages under `/pages/`, `/blogs/`, and inline collection descriptions. The retainer authoring pace (2-4 docs/month) is the same; the SEO leg is incremental wiring on top of the LLM leg, not a separate workstream.
+
+**Schema cleanup, your written approval needed before week 1.** §2.11 confirmed the theme still emits a legacy microdata `Organization` fragment from the header partial - shipping site-wide on every page, only `url` + `logo`, the older dialect Google has discouraged since 2018. The canonical JSON-LD Organization block planned above must replace it in the same push, not ship alongside it - otherwise Google sees two competing Organization records site-wide and entity resolution degrades. Concrete proposal:
+
+1. Strip the four microdata attributes (`itemscope`, `itemtype`, `itemprop="url"`, `itemprop="logo"`) from the header partial in `sections/header.liquid` (or wherever Impulse renders the logo div - one Liquid edit, audit confirmed only one fragment exists site-wide).
+2. Author a single canonical JSON-LD `Organization` block in `layout/theme.liquid` head with `name`, `legalName`, `url`, `logo`, `address` (PostalAddress with streetAddress, postalCode, addressLocality, addressCountry), `contactPoint` (telephone + contactType), and `sameAs` array (Trustpilot profile, Facebook, Instagram, LinkedIn, any other identifiers you want crawled).
+3. Validate the rendered JSON-LD via Google Rich Results Test (clean validation screenshot in handover).
+4. Push to a fresh dev theme duplicate, send preview link, wait for your written sign-off before live publish - same protocol as v1.0.
+
+Estimated effort: 2-3 hours. This is the natural week-1 ship of any retainer tier and a near-zero-risk cleanup, but it edits a global theme file so I want your explicit yes in writing before I touch anything. Reply *approved* to authorize, or *hold* to discuss the JSON-LD field set first.
 
 ---
 
