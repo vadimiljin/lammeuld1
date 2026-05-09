@@ -111,7 +111,19 @@ Replaces the legacy emission previously inlined in `product-template-variables.l
   "description": {{ product.description | strip_html | strip_newlines | escape | truncate: 5000 | json }},
   "url": {{ shop.url | append: product.url | json }},
   "sku": {{ sku_value | json }},
-  ...
+  {%- if product.images.size > 0 -%}
+  "image": [
+    {%- for img in product.images -%}
+      {{ img | img_url: 'master' | prepend: 'https:' | json }}{%- unless forloop.last -%},{%- endunless -%}
+    {%- endfor -%}
+  ],
+  {%- endif -%}
+  {%- if product.vendor != blank -%}
+  "brand": { "@type": "Brand", "name": {{ product.vendor | json }} },
+  {%- endif -%}
+  {%- if barcode != blank and gtin_key != '' -%}
+  "{{ gtin_key }}": {{ barcode | json }},
+  {%- endif -%}
   "offers": {
     "@type": "Offer",
     "price": {{ current_variant.price | divided_by: 100.00 | json }},
@@ -124,6 +136,8 @@ Replaces the legacy emission previously inlined in `product-template-variables.l
 }
 </script>
 ```
+
+The `"{{ gtin_key }}": {{ barcode | json }}` line is what makes barcode/gtin actually land in the JSON output. On a product whose variant has a 13-digit barcode (e.g. EAN), it renders as `"gtin13": "5901234123457"`. On a 12-digit barcode (UPC-A), `"gtin12": ...`. Anything else falls through to `"mpn": ...` so the value still has a schema-valid home. If the variant has no barcode at all, the `barcode != blank and gtin_key != ''` two-condition guard omits the field entirely rather than emitting an empty value.
 
 Wired into `product-template.liquid` behind a PDP-only guard:
 
@@ -158,7 +172,7 @@ Replaces the inline 43-line block at `article-template.liquid:196-238`. The lega
 + {%- render 'schema-breadcrumb' -%}
 ```
 
-New file (excerpt):
+New file:
 
 ```liquid
 {%- liquid
@@ -168,22 +182,46 @@ New file (excerpt):
   else
     assign date_modified = article.published_at | date: '%Y-%m-%dT%H:%M:%S%z'
   endif
+  assign date_created = article.created_at | date: '%Y-%m-%dT%H:%M:%S%z'
+  if shop.brand.logo.image
+    assign publisher_logo_url = shop.brand.logo.image | image_url: width: 600 | prepend: 'https:'
+  else
+    assign publisher_logo_url = 'https://lammeuld.dk/cdn/shop/files/Logo1.jpg?v=1625038236'
+  endif
 -%}
+
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "Article",
   "headline": {{ article.title | escape | truncate: 110 | json }},
-  ...
+  {%- if article.excerpt != blank -%}
+  "description": {{ article.excerpt | strip_html | escape | json }},
+  {%- endif -%}
+  {%- if article.image -%}
+  "image": [{{ article.image | img_url: 'master' | prepend: 'https:' | json }}],
+  {%- endif -%}
   "datePublished": {{ date_published | json }},
   "dateModified": {{ date_modified | json }},
-  ...
+  "dateCreated": {{ date_created | json }},
+  "articleBody": {{ article.content | strip_html | json }},
   {%- if article.author != blank -%}
-    "author": { "@type": "Person", "name": {{ article.author | json }} },
+  "author": { "@type": "Person", "name": {{ article.author | json }} },
   {%- else -%}
-    "author": { "@type": "Organization", "name": {{ shop.name | json }} },
+  "author": { "@type": "Organization", "name": {{ shop.name | json }} },
   {%- endif -%}
-  ...
+  "publisher": {
+    "@type": "Organization",
+    "name": {{ shop.name | json }},
+    "logo": {
+      "@type": "ImageObject",
+      "url": {{ publisher_logo_url | json }}
+    }
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": {{ shop.url | append: article.url | json }}
+  }
 }
 </script>
 ```
