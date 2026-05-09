@@ -18,6 +18,18 @@ The theme/ folder was sent separately as a zip from dev theme `196009525588`. Pu
 
 ---
 
+## Verification baseline (before any edit)
+
+Before touching a single Liquid file I duplicated the live Impulse 7.5.1 theme to dev theme `196009525588` as an unpublished copy and worked exclusively against that. The live theme was never the push target.
+
+Then the pre-change baseline you asked for:
+
+- **20-URL canonical snapshot** (5 product / 5 collection / 5 paginated / 5 blog) to anchor before/after diffs.
+- **GSC indexation snapshot:** 17,854 indexed / 71,424 not indexed; 5,707 product snippets, 6 FAQ snippets, 2 review snippets currently emitted.
+- **Schema source verified theme-shipped.** I grepped the rendered HTML on PDPs, collection pages, and blog posts and traced every JSON-LD block back to theme Liquid - the 5,707 product snippets all came from the legacy emission at `snippets/product-template-variables.liquid:16-57`, and the article block from `sections/article-template.liquid:196-238`. No installed app (JSON-LD for SEO, Schema App, Smart SEO, etc.) emits competing markup. That's what makes theme-Liquid the right implementation surface - your "no apps" requirement is met because nothing else is in the way. The 6 FAQ + 2 review snippets are out of v1.0 scope and stay byte-untouched.
+
+---
+
 ## What ships
 
 ### 1. Canonical override (`layout/theme.liquid`)
@@ -47,7 +59,9 @@ And the `social-meta-tags` render call now passes `computed_canonical` through:
 + {%- render 'social-meta-tags', computed_canonical: computed_canonical -%}
 ```
 
-**For future devs.** Branch 1 emits the bare PDP URL regardless of how the customer got there (`/collections/sideborde/products/wall-lamp-celia-white` and `/products/wall-lamp-celia-white` both canonical to the bare form). Branch 2 points the English-named "all" collection at the Danish-named "alle-produkter" route - canonical, not 301. Branch 3 collapses pagination to page 1; the `current_tags == blank` guard keeps tag-page paginated URLs out (they're a separate problem). Branch 4 lets every other template fall through to Shopify's default. The `current_page` variable is the global one, not `paginate.current_page` (the latter is section-scope and not visible at head-scope).
+**For future devs.** Branch 1 emits the bare PDP URL regardless of how the customer got there - `/collections/sideborde/products/wall-lamp-celia-white` and `/products/wall-lamp-celia-white` both canonical to the bare form. Branch 2 points the English-named "all" collection at the Danish-named "alle-produkter" route. Canonical, not 301. Branch 3 collapses pagination to page 1; the `current_tags == blank` guard keeps tag-page paginated URLs (`/collections/tv-borde/sort?page=2`) out of Branch 3 - they fall through to Branch 4 and self-canonical via Shopify's default. Non-paginated tag pages (`/collections/sideborde/black`) also self-canonical via Branch 4. That's intentional - see the Decision rationale below for the GSC traffic data behind that call. Branch 4 covers everything else (homepage, blog, search, page templates, account, etc.).
+
+The `current_page` variable used in Branch 3 is the global one, not `paginate.current_page` (which is section-scope and not visible at head-scope). The render-tag parameter pass at line 58 is required by Liquid's render-scope isolation rule - without it, `social-meta-tags` would compute its own `canonical_url` independently and `og:url` would silently drift from `<link rel="canonical">` (which is the "self-canonical or conflicting signals" failure mode in your spec). One regression caught and fixed during Phase 2: the original `{%- liquid -%}` block had whitespace stripping on both sides; the closing dash collided with the next adjacent tag in source view (rendered fine in the DOM but failed the View Source eyeball check). Fixed by dropping the trailing dash, commit `843e553`.
 
 ### 2. og:url mirror (`snippets/social-meta-tags.liquid`)
 
@@ -116,11 +130,13 @@ Wired into `product-template.liquid` behind a PDP-only guard:
 + {%- endif -%}
 ```
 
-**For future devs.** The `template == 'product'` guard is load-bearing. `product-template.liquid` is also pulled in by Featured Product on the homepage and the Quick Shop AJAX modal on collection pages. Without the guard, the homepage emits a Product JSON-LD claiming the homepage is a product, and Quick Shop emits a duplicate Product block in the collection DOM. SKU falls back from `current_variant.sku` to `product.variants.first.sku` so unsynced variants don't emit `null`. Barcode length routes to the correct GTIN slot or falls through to `mpn`. `priceCurrency` reads from `cart.currency.iso_code` so Markets multi-currency works without a Liquid edit. `priceValidUntil` is now+1y. `aggregateRating` is intentionally omitted - Trustpilot loads via JS, the values aren't available at render time, and emitting fake values is a manual-action risk.
+**For future devs.** The legacy emission at `product-template-variables.liquid:16-57` had multiple defects worth understanding so they don't get reintroduced: HTTP `@context` (Google soft-prefers HTTPS for structured data), no SKU fallback chain (variants without their own SKU emitted `"sku": null`), no `priceValidUntil` on the Offer (Rich Results ineligibility), no GTIN/MPN dispatch (the barcode field was unused), brand emitted as a bare string instead of a structured `Brand` object, image URLs not coerced to absolute HTTPS, no `itemCondition`. The new snippet fixes all of those.
+
+The `template == 'product'` guard is load-bearing. `product-template.liquid` is also pulled in by Featured Product on the homepage and the Quick Shop AJAX modal on collection pages. Without the guard the homepage emits a Product JSON-LD claiming the homepage IS a product, and Quick Shop emits a duplicate Product block inside the collection DOM. SKU falls back from `current_variant.sku` to `product.variants.first.sku` so partially-configured variants don't emit `null`. Barcode dispatch routes by length (8/12/13/14 to the matching `gtin{N}` key, anything else to `mpn`); the two-condition guard `barcode != blank and gtin_key != ''` omits the field entirely when the variant has no barcode, instead of emitting an empty value. `priceCurrency` reads from `cart.currency.iso_code` at runtime, so Shopify Markets multi-currency just works without a Liquid edit. `priceValidUntil` is `now + 31536000s` (one year) formatted YYYY-MM-DD. The `Offer` is single (one Offer per Product, current variant); per-variant Offers (price ranges, region-specific availability) are a future change if needed. `aggregateRating` is intentionally omitted - Trustpilot loads via JS, the review values aren't available at Liquid render time, and emitting fake numbers is a manual-action risk on the structured-data side.
 
 ### 4. Article schema (`snippets/schema-article.liquid` + `sections/article-template.liquid`)
 
-Replaces the inline 43-line block at `article-template.liquid:196-238` (which had HTTP `@context`, no headline truncate, dateModified that could go future, no author fallback, etc.).
+Replaces the inline 43-line block at `article-template.liquid:196-238`. The legacy block had nine documented defects: HTTP `@context`, no headline truncate (long titles failed Rich Results validation at the 110-char soft limit), `dateModified` could be future or earlier than `datePublished`, no author Person/Organization fallback (blank `article.author` emitted `"name": ""`), no publisher logo `ImageObject` (Article ineligibility), no `description`-when-blank guard (emitted `""`), unpredictable image URL dimensions tied to per-article width, no `mainEntityOfPage` `@id`, dates with literal `Z` suffix on Copenhagen-time articles (silent timezone misrepresentation).
 
 ```diff
 - <script type="application/ld+json">
@@ -167,7 +183,7 @@ New file (excerpt):
 </script>
 ```
 
-**For future devs.** `%z` is the ISO 8601 timezone offset (`+0200` for Copenhagen DST), required by Google to interpret article freshness in the right zone. `dateModified` falls back to `published_at` when `updated_at` is blank, so it can never be empty or earlier than `datePublished`. Headline is truncated at 110 chars (Google soft-limit). `description` is omitted when `article.excerpt` is blank rather than emitted as `""`. Author falls back to Organization when no Person is set. Publisher logo uses `shop.brand.logo.image` if set, with a hardcoded URL fallback that matches the site's existing logo asset.
+**For future devs.** `%z` is the ISO 8601 timezone offset (`+0200` for Copenhagen DST), required by Google to interpret article freshness in the right zone. The legacy block emitted `Z` (UTC literal) on every article, silently misrepresenting the publish time for any article published outside UTC. `dateModified` falls back to `published_at` when `updated_at` is blank, so it can never be empty (`""` is a Rich Results hard-fail) and never earlier than `datePublished` (the "modified before published" inversion is also a hard-fail). The snippet emits all three article timestamps - `datePublished`, `dateModified`, `dateCreated` - the legacy block emitted them too but with the wrong format. Headline is truncated at 110 chars (Google soft-limit). `description` is omitted when `article.excerpt` is blank rather than emitted as `""`. Author has symmetric Person/Organization branches: if `article.author` is set, emit `{"@type": "Person", "name": <author>}`; else emit `{"@type": "Organization", "name": <shop.name>}`. Publisher logo prefers `shop.brand.logo.image` (Shopify's modern Brand asset surface) resized to 600px wide; falls back to the explicit hardcode `https://lammeuld.dk/cdn/shop/files/Logo1.jpg?v=1625038236` so emission never depends on the merchant having filled in the Brand setting. The fallback URL is the same logo asset already on disk, not a fabricated path.
 
 ### 5. BreadcrumbList schema (`snippets/schema-breadcrumb.liquid` + 3 host wires)
 
@@ -242,7 +258,9 @@ Wired in three places:
   ```
 - `sections/article-template.liquid` - one render call after the Article render. This was added 2026-05-08; your spec said "PDPs and collection pages", article-page breadcrumbs were a free addition.
 
-**For future devs.** Position 2 collection URL is built as `shop.url + routes.collections_url + '/' + handle`, not via the `collection.url` filter. On tag URLs (`/collections/sideborde/black`), `collection.url` resolves to the tag URL itself, which would create a self-referential breadcrumb. The explicit form pins to the bare collection URL. PDP terminal uses `shop.url + product.url` bare for the same reason as Branch 1 of the canonical block. Emission is settings-independent (not gated on the merchant breadcrumb-visibility toggle) - search engines benefit even when the visible HTML breadcrumb is hidden. The legacy CollectionPage block at `main-collection.liquid:91-109` is preserved unchanged (different schema type, pre-existing, out of v1.0 scope).
+**For future devs.** This is the single source of truth for BreadcrumbList - no other BreadcrumbList emission exists anywhere on the catalog. Position 2 collection URL is built as `shop.url + routes.collections_url + '/' + handle`, not via the `collection.url` Liquid filter. On tag URLs like `/collections/sideborde/black`, `collection.url` resolves to the tag URL itself, which would create a self-referential breadcrumb (the page IS the URL the breadcrumb points at). The explicit form pins to the bare collection URL. PDP terminal uses `shop.url + product.url` bare for the same reason as Branch 1 of the canonical block - keeps the schema URL aligned with the canonical, no collection-scope leakage. The PDP branch has a 3-position fallback chain: `collection` (the scope Shopify exposes when the customer reached the PDP via a collection-scoped URL), then `product.collections.first` (when the customer reached via the bare URL), then 2-position when both are nil (a product manually unlinked from every collection - rare). Emission is settings-independent: not gated on the merchant breadcrumb-visibility toggle, because search engines benefit from the structured hierarchy even when the visible HTML breadcrumb is hidden. The catch-all branch emits no `<script>` at all - defense-in-depth alongside the host-side PDP guard.
+
+The legacy `CollectionPage` JSON-LD block at `main-collection.liquid:91-109` is a different schema type (CollectionPage, not BreadcrumbList) and is preserved byte-equal. It has its own pre-existing oddities including HTTP `@context` and a hand-rolled walker pattern; the new schema deliberately does NOT propagate the HTTP form. If you ever rewrite that legacy block, fix the HTTP-to-HTTPS migration there too. For v1.0 it stays untouched (out of scope).
 
 ---
 
@@ -266,7 +284,7 @@ Rich Results Test screenshots are in `qa/phase-3/` (5 PDPs, Product), `qa/phase-
 
 The 500-URL pre-publish crawl is in `CRAWL-RESULTS.md`. 495/500 strict-PASS, 5 WARN on tag-page surfaces (out of v1.0 scope, classified explicitly), zero failures, zero crawler errors, zero leakage to live.
 
-Pre-change baseline captured before any edit: 20 URLs (5 product, 5 collection, 5 paginated, 5 blog) plus a GSC indexation snapshot (17,854 indexed / 71,424 not indexed; 5,707 product snippets observed pre-replace, all rolled into the new emission; 6 FAQ + 2 review snippets observed and left alone).
+Phase-by-phase validation gates closed clean before each next phase started. Phase 2 close: re-ran the canonical check on the same 20-URL pool I captured pre-edit. All 20 returned the expected branch output (Branch 1 for products, Branch 2 for `/collections/all`, Branch 3 for paginated, Branch 4 for everything else) and `og:url` byte-equal to `<link rel="canonical">` on every row. Cross-template regression on the five surfaces Tina specified (PDP, collection, paginated collection, blog post, blog index) returned 5/5 PASS on the dev theme. Phases 3, 4, 5 each closed with their own RRT validation panels (`qa/phase-{3,4,5}/`) before the next phase's atomic commit landed.
 
 ---
 
