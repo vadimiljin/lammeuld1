@@ -1,14 +1,13 @@
 # HANDOVER - lammeuld.dk technical SEO v1.0
 
 <details>
-<summary><b>Build context</b> (date, contract, themes)</summary>
-
+<summary><b>Build context</b> (date, author, themes)</summary>
+  
 - **Date:** 2026-05-09
 - **Author:** Vadim Iljin (hello@vadimiljin.com)
-- **Contract:** $1,980, 26h, accepted 2026-05-06
 - **Dev theme:** 196009525588 (work happens here)
 - **Live theme:** 186499793236 (untouched throughout the milestone)
-
+  
 </details>
 
 What's in this repo:
@@ -27,7 +26,7 @@ The theme/ folder was sent separately as a zip from dev theme `196009525588`. Pu
 
 Before touching a single Liquid file I duplicated the live Impulse 7.5.1 theme to dev theme `196009525588` as an unpublished copy and worked exclusively against that. The live theme was never the push target.
 
-Then the pre-change baseline you asked for:
+The pre-change baseline:
 
 - **20-URL canonical snapshot** (5 product / 5 collection / 5 paginated / 5 blog) to anchor before/after diffs.
 - **GSC indexation snapshot:** 17,854 indexed / 71,424 not indexed; 5,707 product snippets, 6 FAQ snippets, 2 review snippets currently emitted.
@@ -358,17 +357,7 @@ The `current_tags == blank` guard on Branch 3 keeps tag-page paginated URLs (`/c
 
 ### Pagination deviation - flagged with date and source
 
-You asked for `?page=2+` to canonical to page 1. Google's current public guidance says the opposite.
-
-**Source:** [Pagination and incremental page loading](https://developers.google.com/search/docs/specialty/ecommerce/pagination-and-incremental-page-loading), updated 2025-12-10. Verbatim: *"Don't use the first page of a paginated sequence as the canonical page. Instead, give each page its own canonical URL."*
-
-**Timeline:**
-
-- **2026-05-05 1:40 PM** - Tina's spec (relayed by Jonathan) included "Ensure pagination (?page=2+) canonicalizes to page 1".
-- **2026-05-05 1:57 PM** - my reply flagged the deviation in writing before the contract was signed: *"Pagination ?page=2+ canonical to page 1, per your spec. Flagging in writing once more: this deviates from Google's current published pagination guidance (Dec 2025 update). Implementing as you specified, documenting the deviation and rationale in the handover so the next person who audits the site has the trail."*
-- **2026-05-06** - Upwork milestone offer accepted with the flag explicit.
-
-Implemented as specified. If a future audit (yours, mine, or someone else's) wonders why `?page=2+` doesn't self-canonical, this paragraph is the answer. Don't "fix" it by switching to self-referencing canonicals - that's a contract change, not a bug.
+You asked for `?page=2+` to canonical to page 1. Implemented as specified. If a future audit wonders why `?page=2+` doesn't self-canonical, this paragraph is the answer. Don't "fix" it by switching to self-referencing canonicals - that's a contract change, not a bug.
 
 If you want to switch to self-referencing pagination canonicals later, drop Branch 3 from the `if/elsif` chain in `theme.liquid` and Branch 4 takes over. One-line edit.
 
