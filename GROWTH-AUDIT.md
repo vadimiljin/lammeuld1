@@ -6,7 +6,6 @@
 - **Date:** 2026-05-09
 - **Author:** Vadim Iljin (hello@vadimiljin.com)
 - **Audience:** Jonathan, Tina
-- 
 </details>
 
 ---
