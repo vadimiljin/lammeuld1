@@ -1,9 +1,13 @@
-# LAMMEULD-DK Growth Audit - AI-Search Position & Strategic Roadmap
+# LAMMEULD.DK Growth Audit - AI-Search Position & Strategic Roadmap
 
-**Generated:** 2026-05-09
-**Author:** Vadim Iljin (hello@vadimiljin.com)
-**Audience:** Jonathan Kiilerich, Tina
-
+<details>
+<summary><b>Context</b> (date, author, audience)</summary>
+  
+- **Date:** 2026-05-09
+- **Author:** Vadim Iljin (hello@vadimiljin.com)
+- **Audience:** Jonathan, Tina
+- 
+</details>
 ---
 
 ## §0 - Read this first
