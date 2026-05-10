@@ -1,9 +1,5 @@
 # Dev-theme preview URLs
 
-**Generated:** 2026-05-09
-**Dev theme ID:** 196009525588
-**Live theme ID:** 186499793236 (UNCHANGED throughout the milestone)
-
 ## Buyer-side cookie note (please read before clicking)
 
 These preview URLs include the dev-theme query parameter, but **that parameter alone is not enough** - Shopify's storefront also requires an admin session cookie to surface the dev theme. Without the cookie, these URLs will render the **live theme** (theme 186499793236), not the dev theme.
