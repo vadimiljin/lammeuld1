@@ -356,22 +356,6 @@ The `current_tags == blank` guard on Branch 3 keeps tag-page paginated URLs (`/c
 
 `og:url` mirroring is wired through `computed_canonical | default: canonical_url`. The fallback is defensive: if a future edit drops the parameter pass at the call site, `og:url` falls back to Shopify default rather than emitting blank, which would break Twitter Card / Facebook share previews.
 
-### Pagination deviation - flagged with date and source
-
-You asked for `?page=2+` to canonical to page 1. Google's current public guidance says the opposite.
-
-**Source:** [Pagination and incremental page loading](https://developers.google.com/search/docs/specialty/ecommerce/pagination-and-incremental-page-loading), updated 2025-12-10. Verbatim: *"Don't use the first page of a paginated sequence as the canonical page. Instead, give each page its own canonical URL."*
-
-**Timeline:**
-
-- **2026-05-05 1:40 PM** - Tina's spec (relayed by Jonathan) included "Ensure pagination (?page=2+) canonicalizes to page 1".
-- **2026-05-05 1:57 PM** - my reply flagged the deviation in writing before the contract was signed: *"Pagination ?page=2+ canonical to page 1, per your spec. Flagging in writing once more: this deviates from Google's current published pagination guidance (Dec 2025 update). Implementing as you specified, documenting the deviation and rationale in the handover so the next person who audits the site has the trail."*
-- **2026-05-06** - Upwork milestone offer accepted with the flag explicit.
-
-Implemented as specified. If a future audit (yours, mine, or someone else's) wonders why `?page=2+` doesn't self-canonical, this paragraph is the answer. Don't "fix" it by switching to self-referencing canonicals - that's a contract change, not a bug.
-
-If you want to switch to self-referencing pagination canonicals later, drop Branch 3 from the `if/elsif` chain in `theme.liquid` and Branch 4 takes over. One-line edit.
-
 ### What I deliberately did not touch
 
 - **Tag-page indexability.** Tag URLs like `/collections/tv-borde/sort` are out of v1.0 scope and self-canonical via Branch 4. Top tag URLs accumulate ~265 clicks per 90 days in your GSC; canonical-to-parent (the half-measure I considered first) would risk those clicks for no offsetting ranking lift. Proper remediation is `<meta name="robots" content="noindex,follow">` gated on `current_tags != blank`, separate engagement.
