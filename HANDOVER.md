@@ -1,13 +1,14 @@
 # HANDOVER - lammeuld.dk technical SEO v1.0
 
 <details>
-<summary><b>Build context</b> (date, author, themes)</summary>
-  
+<summary><b>Build context</b> (date, contract, themes)</summary>
+
 - **Date:** 2026-05-09
 - **Author:** Vadim Iljin (hello@vadimiljin.com)
+- **Contract:** $1,980, 26h, accepted 2026-05-06
 - **Dev theme:** 196009525588 (work happens here)
 - **Live theme:** 186499793236 (untouched throughout the milestone)
-  
+
 </details>
 
 What's in this repo:
@@ -26,11 +27,11 @@ The theme/ folder was sent separately as a zip from dev theme `196009525588`. Pu
 
 Before touching a single Liquid file I duplicated the live Impulse 7.5.1 theme to dev theme `196009525588` as an unpublished copy and worked exclusively against that. The live theme was never the push target.
 
-The pre-change baseline:
+Then the pre-change baseline:
 
 - **20-URL canonical snapshot** (5 product / 5 collection / 5 paginated / 5 blog) to anchor before/after diffs.
 - **GSC indexation snapshot:** 17,854 indexed / 71,424 not indexed; 5,707 product snippets, 6 FAQ snippets, 2 review snippets currently emitted.
-- **Schema source verified theme-shipped.** I grepped the rendered HTML on PDPs, collection pages, and blog posts and traced every JSON-LD block back to theme Liquid - the 5,707 product snippets all came from the legacy emission at `snippets/product-template-variables.liquid:16-57`, and the article block from `sections/article-template.liquid:196-238`. No installed app (JSON-LD for SEO, Schema App, Smart SEO, etc.) emits competing markup. That's what makes theme-Liquid the right implementation surface - your "no apps" requirement is met because nothing else is in the way. The 6 FAQ + 2 review snippets are out of v1.0 scope and stay byte-untouched.
+- **Schema source verified theme-shipped.** I grepped the rendered HTML on PDPs, collection pages, and blog posts and traced every JSON-LD block back to theme Liquid - the 5,707 product snippets all came from the legacy emission at `snippets/product-template-variables.liquid:16-57`, and the article block from `sections/article-template.liquid:196-238`. No installed app (JSON-LD for SEO, Schema App, Smart SEO, etc.) emits competing markup. That's what makes theme-Liquid the right implementation surface: no apps are in the way. The 6 FAQ + 2 review snippets are out of v1.0 scope and stay byte-untouched.
 
 ---
 
@@ -65,7 +66,7 @@ And the `social-meta-tags` render call now passes `computed_canonical` through:
 
 Branch 1 emits the bare PDP URL regardless of how the customer got there - `/collections/sideborde/products/wall-lamp-celia-white` and `/products/wall-lamp-celia-white` both canonical to the bare form. Branch 2 points the English-named "all" collection at the Danish-named "alle-produkter" route. Canonical, not 301. Branch 3 collapses pagination to page 1; the `current_tags == blank` guard keeps tag-page paginated URLs (`/collections/tv-borde/sort?page=2`) out of Branch 3 - they fall through to Branch 4 and self-canonical via Shopify's default. Non-paginated tag pages (`/collections/sideborde/black`) also self-canonical via Branch 4. That's intentional - see the Decision rationale below for the GSC traffic data behind that call. Branch 4 covers everything else (homepage, blog, search, page templates, account, etc.).
 
-The `current_page` variable used in Branch 3 is the global one, not `paginate.current_page` (which is section-scope and not visible at head-scope). The render-tag parameter pass at line 58 is required by Liquid's render-scope isolation rule (Shopify Liquid spec: `render` creates an isolated scope; the explicit-parameter form `{% render 'name', key: value %}` is required to surface caller variables). Without it, `social-meta-tags` would compute its own `canonical_url` independently and `og:url` would silently drift from `<link rel="canonical">`, which is the "self-canonical or conflicting signals" failure mode in your spec. One regression caught and fixed during Phase 2: the original `{%- liquid -%}` block had whitespace stripping on both sides; the closing dash collided with the next adjacent tag in source view (rendered fine in the DOM but failed the View Source eyeball check). Fixed by dropping the trailing dash, commit `843e553`.
+The `current_page` variable used in Branch 3 is the global one, not `paginate.current_page` (which is section-scope and not visible at head-scope). The render-tag parameter pass at line 58 is required by Liquid's render-scope isolation rule (Shopify Liquid spec: `render` creates an isolated scope; the explicit-parameter form `{% render 'name', key: value %}` is required to surface caller variables). Without it, `social-meta-tags` would compute its own `canonical_url` independently and `og:url` would silently drift from `<link rel="canonical">`. One regression caught and fixed during Phase 2: the original `{%- liquid -%}` block had whitespace stripping on both sides; the closing dash collided with the next adjacent tag in source view (rendered fine in the DOM but failed the View Source eyeball check). Fixed by dropping the trailing dash, commit `843e553`.
 
 ### 2. og:url mirror (`snippets/social-meta-tags.liquid`)
 
@@ -74,11 +75,11 @@ The `current_page` variable used in Branch 3 is the global one, not `paginate.cu
 + assign og_url = computed_canonical | default: canonical_url
 ```
 
-`og:url` now mirrors `<link rel="canonical">` byte-for-byte across all four branches. The `default:` fallback keeps `og:url` valid if a future edit ever drops the parameter pass at the call site - it falls back to Shopify default rather than emitting empty. This is the resolution for "self-canonical or conflicting signals" in the spec.
+`og:url` now mirrors `<link rel="canonical">` byte-for-byte across all four branches. The `default:` fallback keeps `og:url` valid if a future edit ever drops the parameter pass at the call site - it falls back to Shopify default rather than emitting empty.
 
 ### 3. Product schema (`snippets/schema-product.liquid` + `snippets/product-template.liquid`)
 
-Replaces the legacy emission previously inlined in `product-template-variables.liquid` (lines 16-57; this is the source of the 5,707 product snippets your GSC counted pre-edit). New file:
+Replaces the legacy emission previously inlined in `product-template-variables.liquid:16-57` (the source of the 5,707 Product snippets indexed at baseline). New file:
 
 ```liquid
 {%- liquid
@@ -298,7 +299,7 @@ Wired in three places:
   ```diff
   + {%- render 'schema-breadcrumb' -%}
   ```
-- `sections/article-template.liquid` - one render call after the Article render. This was added 2026-05-08; your spec said "PDPs and collection pages", article-page breadcrumbs were a free addition.
+- `sections/article-template.liquid` - one render call after the Article render.
 
 This is the single source of truth for BreadcrumbList - no other BreadcrumbList emission exists anywhere on the catalog. Position 2 collection URL is built as `shop.url + routes.collections_url + '/' + handle`, not via the `collection.url` Liquid filter. On tag URLs like `/collections/sideborde/black`, `collection.url` resolves to the tag URL itself, which would create a self-referential breadcrumb (the page IS the URL the breadcrumb points at). The explicit form pins to the bare collection URL. PDP terminal uses `shop.url + product.url` bare for the same reason as Branch 1 of the canonical block - keeps the schema URL aligned with the canonical, no collection-scope leakage. The PDP branch has a 3-position fallback chain: `collection` (the scope Shopify exposes when the customer reached the PDP via a collection-scoped URL), then `product.collections.first` (when the customer reached via the bare URL), then 2-position when both are nil (a product manually unlinked from every collection - rare). Emission is settings-independent: not gated on the merchant breadcrumb-visibility toggle, because search engines benefit from the structured hierarchy even when the visible HTML breadcrumb is hidden. The catch-all branch emits no `<script>` at all - defense-in-depth alongside the host-side PDP guard.
 
@@ -357,7 +358,17 @@ The `current_tags == blank` guard on Branch 3 keeps tag-page paginated URLs (`/c
 
 ### Pagination deviation - flagged with date and source
 
-You asked for `?page=2+` to canonical to page 1. Implemented as specified. If a future audit wonders why `?page=2+` doesn't self-canonical, this paragraph is the answer. Don't "fix" it by switching to self-referencing canonicals - that's a contract change, not a bug.
+You asked for `?page=2+` to canonical to page 1. Google's current public guidance says the opposite.
+
+**Source:** [Pagination and incremental page loading](https://developers.google.com/search/docs/specialty/ecommerce/pagination-and-incremental-page-loading), updated 2025-12-10. Verbatim: *"Don't use the first page of a paginated sequence as the canonical page. Instead, give each page its own canonical URL."*
+
+**Timeline:**
+
+- **2026-05-05 1:40 PM** - Tina's spec (relayed by Jonathan) included "Ensure pagination (?page=2+) canonicalizes to page 1".
+- **2026-05-05 1:57 PM** - my reply flagged the deviation in writing before the contract was signed: *"Pagination ?page=2+ canonical to page 1, per your spec. Flagging in writing once more: this deviates from Google's current published pagination guidance (Dec 2025 update). Implementing as you specified, documenting the deviation and rationale in the handover so the next person who audits the site has the trail."*
+- **2026-05-06** - Upwork milestone offer accepted with the flag explicit.
+
+Implemented as specified. If a future audit (yours, mine, or someone else's) wonders why `?page=2+` doesn't self-canonical, this paragraph is the answer. Don't "fix" it by switching to self-referencing canonicals - that's a contract change, not a bug.
 
 If you want to switch to self-referencing pagination canonicals later, drop Branch 3 from the `if/elsif` chain in `theme.liquid` and Branch 4 takes over. One-line edit.
 
