@@ -1,11 +1,10 @@
 # HANDOVER - lammeuld.dk technical SEO v1.0
 
 <details>
-<summary><b>Build context</b> (date, contract, themes)</summary>
+<summary><b>Build context</b> (date, author, themes)</summary>
 
 - **Date:** 2026-05-09
 - **Author:** Vadim Iljin (hello@vadimiljin.com)
-- **Contract:** $1,980, 26h, accepted 2026-05-06
 - **Dev theme:** 196009525588 (work happens here)
 - **Live theme:** 186499793236 (untouched throughout the milestone)
 
@@ -27,7 +26,7 @@ The theme/ folder was sent separately as a zip from dev theme `196009525588`. Pu
 
 Before touching a single Liquid file I duplicated the live Impulse 7.5.1 theme to dev theme `196009525588` as an unpublished copy and worked exclusively against that. The live theme was never the push target.
 
-Then the pre-change baseline:
+The pre-change baseline:
 
 - **20-URL canonical snapshot** (5 product / 5 collection / 5 paginated / 5 blog) to anchor before/after diffs.
 - **GSC indexation snapshot:** 17,854 indexed / 71,424 not indexed; 5,707 product snippets, 6 FAQ snippets, 2 review snippets currently emitted.
